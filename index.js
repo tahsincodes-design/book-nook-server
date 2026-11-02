@@ -31,3 +31,14 @@ app.post('/add-books', async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 });
+
+app.get('/books', async (req, res) => {
+    try {
+        const collection = client.db('booknook').collection('books');
+        const books = await collection.find({}).toArray();
+        res.status(200).json(books);
+    } catch (error) {
+        console.error('Error fetching books:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});

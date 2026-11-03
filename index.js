@@ -312,17 +312,35 @@ app.delete('/my-borrows/:id', async (req, res) => {
 
 app.post('/usersComments', async (req, res) => {
     try {
-        const { email, comment } = req.body;
+        const body = req.body ?? {};
+        const userId = typeof body.userId === 'string' ? body.userId.trim() : '';
+        const name = typeof body.name === 'string' ? body.name.trim() : '';
+        const email = typeof body.email === 'string' ? body.email.trim() : '';
+        const comment = typeof body.comment === 'string' ? body.comment.trim() : '';
+        const rawRating = body.rating ?? body.stars;
+        const rating =
+            typeof rawRating === 'number'
+                ? rawRating
+                : typeof rawRating === 'string'
+                  ? Number(rawRating)
+                  : NaN;
 
-        if (!email || !comment) {
+        if (!userId || !email || !comment || !Number.isInteger(rating) || rating < 1 || rating > 5) {
             return res.status(400).json({
                 success: false,
-                message: 'Email and comment are required',
+                message: 'User ID, email, comment and a rating from 1 to 5 are required',
             });
         }
 
         const usersCommentsCollection = client.db('booknook').collection('usersComments');
-        await usersCommentsCollection.insertOne({ email, comment, createdAt: new Date() });
+        await usersCommentsCollection.insertOne({
+            userId,
+            name: name || email.split('@')[0],
+            email,
+            comment,
+            rating,
+            createdAt: new Date(),
+        });
 
         return res.status(201).json({
             success: true,
@@ -339,8 +357,26 @@ app.post('/usersComments', async (req, res) => {
 
 app.get('/usersComments', async (req, res) => {
     try {
+        const userId = typeof req.query.userId === 'string' ? req.query.userId.trim() : '';
+        const email = typeof req.query.email === 'string' ? req.query.email.trim() : '';
+
+        if (!userId) {
+            return res.status(400).json({
+                success: false,
+                message: 'User ID is required',
+            });
+        }
+
         const usersCommentsCollection = client.db('booknook').collection('usersComments');
-        const comments = await usersCommentsCollection.find({}).sort({ createdAt: -1 }).toArray();
+        const comments = await usersCommentsCollection
+            .find({
+                $or: [
+                    { userId },
+                    ...(email ? [{ userId: { $exists: false }, email }] : []),
+                ],
+            })
+            .sort({ createdAt: -1 })
+            .toArray();
 
         return res.status(200).json(comments);
     } catch (error) {
@@ -369,4 +405,3 @@ async function start() {
 start();
 
 export default app;
-

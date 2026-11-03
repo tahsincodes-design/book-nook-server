@@ -512,24 +512,9 @@ app.post('/usersComments', requireAuth, async (req, res) => {
 
 app.get('/usersComments', async (req, res) => {
     try {
-        const requestedUserId =
-            typeof req.query.userId === 'string' ? req.query.userId.trim() : '';
-
-        if (requestedUserId && requestedUserId !== req.auth.userId) {
-            return res.status(403).json({ message: 'You can only view your own comments.' });
-        }
-
         const usersCommentsCollection = database.collection('usersComments');
         const comments = await usersCommentsCollection
-            .find({
-                $or: [
-                    { userId: req.auth.userId },
-                    {
-                        userId: { $exists: false },
-                        email: req.auth.email,
-                    },
-                ],
-            })
+            .find({}, { projection: { userId: 0, email: 0 } })
             .sort({ createdAt: -1 })
             .toArray();
 

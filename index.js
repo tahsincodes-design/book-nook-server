@@ -337,6 +337,21 @@ app.post('/usersComments', async (req, res) => {
     }
 });
 
+app.get('/usersComments', async (req, res) => {
+    try {
+        const usersCommentsCollection = client.db('booknook').collection('usersComments');
+        const comments = await usersCommentsCollection.find({}).sort({ createdAt: -1 }).toArray();
+
+        return res.status(200).json(comments);
+    } catch (error) {
+        console.error('Error fetching comments:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+        });
+    }
+});
+
 async function start() {
     try {
         await client.connect();

@@ -543,6 +543,7 @@ app.get('/usersComments', requireAuth, async (req, res) => {
     }
 });
 
+
 async function start() {
     try {
         await client.connect();

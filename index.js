@@ -510,7 +510,7 @@ app.post('/usersComments', requireAuth, async (req, res) => {
     }
 });
 
-app.get('/usersComments', requireAuth, async (req, res) => {
+app.get('/usersComments', async (req, res) => {
     try {
         const requestedUserId =
             typeof req.query.userId === 'string' ? req.query.userId.trim() : '';

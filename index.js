@@ -14,8 +14,10 @@ if (!authBaseUrl) {
     throw new Error('BETTER_AUTH_URL must be set to the BetterAuth issuer URL.');
 }
 
+const authUrl = new URL(authBaseUrl);
+const authIssuer = authUrl.href.replace(/\/+$/, '');
 const authJwksUrl = new URL(
-    process.env.AUTH_JWKS_URL ?? `${authBaseUrl.replace(/\/$/, '')}/api/auth/jwks`,
+    process.env.AUTH_JWKS_URL ?? `${authIssuer}/api/auth/jwks`,
 );
 const jwtAudience = process.env.JWT_AUDIENCE ?? 'booknook-api';
 const authJwks = createRemoteJWKSet(authJwksUrl);
@@ -26,7 +28,7 @@ const books = database.collection('books');
 
 app.use(
     cors({
-        origin: process.env.BETTER_AUTH_URL,
+        origin: authUrl.origin,
         credentials: true,
     }),
 );
@@ -42,7 +44,7 @@ async function requireAuth(req, res, next) {
 
     try {
         const { payload } = await jwtVerify(match[1], authJwks, {
-            issuer: authBaseUrl,
+            issuer: authIssuer,
             audience: jwtAudience,
             algorithms: ['EdDSA'],
         });
@@ -61,7 +63,12 @@ async function requireAuth(req, res, next) {
             name: payload.name.trim(),
         };
         return next();
-    } catch {
+    } catch (error) {
+        console.error('JWT verification failed:', {
+            name: error.name,
+            code: error.code,
+            claim: error.claim,
+        });
         return res.status(401).json({ message: 'The bearer token is invalid or expired.' });
     }
 }
